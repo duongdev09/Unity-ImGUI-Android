@@ -15,6 +15,27 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fix imgui — clone nếu rỗng
+        run: |
+          # Kiểm tra imgui có file không
+          if [ ! -f "src/imgui/imgui.cpp" ]; then
+            echo "imgui rỗng — đang clone về..."
+            rm -rf src/imgui
+            git clone --depth=1 https://github.com/ocornut/imgui.git src/imgui
+
+            # Copy backend files cần thiết
+            mkdir -p src/imgui/backends
+            echo "imgui đã có:"
+            ls src/imgui/
+          else
+            echo "imgui ok — bỏ qua"
+          fi
+
+          # Verify
+          ls -la src/imgui/imgui.cpp
+          ls -la src/imgui/backends/imgui_impl_android.cpp || echo "WARNING: backend thiếu"
+          ls -la src/imgui/backends/imgui_impl_opengl3.cpp || echo "WARNING: backend thiếu"
+
       - name: Setup Android SDK + NDK
         uses: android-actions/setup-android@v3
 
