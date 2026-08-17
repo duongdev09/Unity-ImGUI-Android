@@ -1,66 +1,67 @@
-# For more information about using CMake with Android Studio, read the
-# documentation: https://d.android.com/studio/projects/add-native-code.html
-
-# Sets the minimum version of CMake required to build the native library.
-
-cmake_minimum_required(VERSION 3.10.2)
-
-# Declares and names the project.
+cmake_minimum_required(VERSION 3.18.1)
 
 project("void")
 
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
+# ─── Android 15 / 16KB page size fix ───────────────────────────────────────
+add_link_options(-Wl,-z,max-page-size=16384)
 
-add_library( # Sets the name of the library.
-             void
+# ─── Source files (giữ nguyên của mày) ─────────────────────────────────────
+add_library(
+    void
+    SHARED
+    main.cpp
+    utils.cpp
+    hooks.cpp
+    menu.cpp
+    imgui/imgui.cpp
+    imgui/imgui_demo.cpp
+    imgui/imgui_draw.cpp
+    imgui/imgui_tables.cpp
+    imgui/imgui_widgets.cpp
+    imgui/imgui_impl_android.cpp
+    imgui/imgui_impl_opengl3.cpp
+)
 
-             # Sets the library as a shared library.
-             SHARED
-
-             # Provides a relative path to your source file(s).
-             main.cpp
-             utils.cpp
-             hooks.cpp
-             menu.cpp
-             imgui/imgui.cpp
-             imgui/imgui_demo.cpp
-             imgui/imgui_draw.cpp
-             imgui/imgui_tables.cpp
-             imgui/imgui_widgets.cpp
-             imgui/imgui_impl_android.cpp
-             imgui/imgui_impl_opengl3.cpp)
-
+# ─── Dobby (giữ nguyên của mày) ────────────────────────────────────────────
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/dobby/include)
 
-# Searches for a specified prebuilt library and stores the path as a
-# variable. Because CMake includes system libraries in the search path by
-# default, you only need to specify the name of the public NDK library
-# you want to add. CMake verifies that the library exists before
-# completing its build.
+set(DOBBY_LIB
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dobby/${CMAKE_ANDROID_ARCH_ABI}/libdobby.a
+)
 
-find_library( # Sets the name of the path variable.
-              log-lib
+find_library(log-lib log)
 
-              # Specifies the name of the NDK library that
-              # you want CMake to locate.
-              log )
+# ─── Compile flags (cái này mày đang thiếu — thêm vào) ─────────────────────
+target_compile_options(void PRIVATE
+    -fPIC
+    -O2
+    -std=c++17
+    -fvisibility=hidden
+    -ffunction-sections
+    -fdata-sections
+    -Wno-error=format-security
+)
 
-set(DOBBY_LIB ${CMAKE_CURRENT_SOURCE_DIR}/libs/dobby/${CMAKE_ANDROID_ARCH_ABI}/libdobby.a)
+# ─── Linker flags ───────────────────────────────────────────────────────────
+target_link_options(void PRIVATE
+    -Wl,-z,max-page-size=16384
+    -Wl,--gc-sections
+    -Wl,--strip-all
+)
 
-# Specifies libraries CMake should link to your target library. You
-# can link multiple libraries, such as libraries you define in this
-# build script, prebuilt third-party libraries, or system libraries.
+# ─── Include dirs ───────────────────────────────────────────────────────────
+target_include_directories(void PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui
+    ${CMAKE_CURRENT_SOURCE_DIR}/libs/dobby/include
+)
 
-target_link_libraries( # Specifies the target library.
-                       void
-
-                       # Links the target library to the log library
-                       # included in the NDK.
-                       ${log-lib}
-                       ${DOBBY_LIB}
-                       android
-                       EGL
-                       GLESv3)
+# ─── Link libs (giữ nguyên + thêm GLESv2 fallback) ─────────────────────────
+target_link_libraries(void
+    ${log-lib}
+    ${DOBBY_LIB}
+    android
+    EGL
+    GLESv3
+    GLESv2
+)
